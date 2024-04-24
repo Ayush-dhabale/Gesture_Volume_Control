@@ -11,8 +11,6 @@ from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 from src.exception import CustomException
 from src.logger import logging
 
-
-
 #Create a data class for cam variables
 @dataclass
 class Cam:
@@ -78,8 +76,13 @@ class VolumeControl:
         '''
             Initialize the variables of the above data classes
         '''
+        logging.info("Initializing the cam variables")
         self.Cam_variables = Cam()
+
+        logging.info("Initializing the detector variables")
         self.Detector_variable = Detector()
+
+        logging.info("Initializing the Audio variables")
         self.Audio_variables = Audio()
 
     #create a method to control the volume

@@ -86,24 +86,29 @@ class handDetector():
             Finds the actual positions of the hand landmarks
             Stores the x, y position and id of the finger
         '''
+        try:
+            #Define a list to save the co ordinates
+            logging.info("Defining the list to store the co ordinates of the hand landmarks")
+            lmlist = []
+            if self.results.multi_hand_landmarks:
+                myHand = self.results.multi_hand_landmarks[handNo]
+
+
+                for id,lm in enumerate(myHand.landmark):
+                        logging.info("Storing the shape of the landmarks")
+                        #Store the shape of the landmarks
+                        h , w, c = img.shape
+
+                        logging.info("Converting them into x , y coordinates")
+                        #Convert them into x, y coordinates
+                        cx ,cy = int(lm.x*w),int(lm.y*h)
+                        lmlist.append([id,cx,cy])
+                        
+            return lmlist
         
-        #Define a list to save the co ordinates
-        logging.info("Defining the list to store the co ordinates of the hand landmarks")
-        lmlist = []
-        if self.results.multi_hand_landmarks:
-            myHand = self.results.multi_hand_landmarks[handNo]
-
-
-            for id,lm in enumerate(myHand.landmark):
-                    logg
-                    #Store the shape of the landmarks
-                    h , w, c = img.shape
-
-                    #Convert them into x, y coordinates
-                    cx ,cy = int(lm.x*w),int(lm.y*h)
-                    lmlist.append([id,cx,cy])
-                    
-        return lmlist
+        except Exception as e:
+            logging.info("Error occured while  finding the position of landmarks")
+            raise CustomException(e,sys)
     
     #Create a method to detect whether fingers are up or not
     def fingersUp(self):
@@ -114,46 +119,74 @@ class handDetector():
             1: Finger up
             0: Finger down
         '''
-        fingers = []
-        # Thumb
-        if self.lmList[self.tipIds[0]][1] > self.lmList[self.tipIds[0] - 1][1]:
-            fingers.append(1)
-        else:
-            fingers.append(0)
-
-        # Fingers
-        for id in range(1, 5):
-
-            if self.lmList[self.tipIds[id]][2] < self.lmList[self.tipIds[id] - 2][2]:
+        try:
+            
+            logging.info("Defining a list to  store the status of each finger")
+            fingers = []
+            
+            # Thumb
+            logging.info("Storing the status of Thumb")
+            if self.lmList[self.tipIds[0]][1] > self.lmList[self.tipIds[0] - 1][1]:
                 fingers.append(1)
             else:
                 fingers.append(0)
 
-        # totalFingers = fingers.count(1)
-
-        return fingers
-
+            # Fingers
+            for id in range(1, 5):
                 
-def main():
-    pTime = 0
-    cTime = 0
-    cap = cv2.VideoCapture(0)
-    detector = handDetector()
+                logging.info("Storing the status of finger")
+                if self.lmList[self.tipIds[id]][2] < self.lmList[self.tipIds[id] - 2][2]:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
 
-    while True:
-        success , img = cap.read()
-        img = detector.findHands(img)
-        lmlist = detector.findPosition(img)
-
-        cTime = time.time()
-        fps = 1/(cTime-pTime)
-        pTime = cTime
-
+            return fingers
         
-        cv2.putText(img,str(int(fps)),(10,70),cv2.FONT_HERSHEY_PLAIN,3,(255,0,255),3)
+        except Exception as e:
+            logging.info("Error occured while  checking the status of fingers")
+            raise CustomException(e,sys)
 
-        cv2.imshow("Image", img)
-        cv2.waitKey(1)
+               
+def main():
+    
+    try:
+
+        pTime = 0
+        cTime = 0
+
+        logging.info("Creating object for camera")
+        cap = cv2.VideoCapture(0)
+
+        logging.info("Creating a object for hand detector class")
+        detector = handDetector()
+
+        while True:
+            logging.info("Reading the image")
+            success , img = cap.read()
+
+            logging.info("Finding the hands")
+            img = detector.findHands(img)
+            logging.info("Found hands")
+
+            logging.info("Finding the position of the land marks")
+            lmlist = detector.findPosition(img)
+            logging.info("Found the position")
+
+            cTime = time.time()
+            fps = 1/(cTime-pTime)
+            pTime = cTime
+
+            logging.info("Writing fps on the frame")
+            cv2.putText(img,str(int(fps)),(10,70),cv2.FONT_HERSHEY_PLAIN,3,(255,0,255),3)
+
+            logging.info("Showing the detected image")
+            cv2.imshow("Image", img)
+
+            cv2.waitKey(1)
+
+    except Exception as e:
+        logging.info("Error occured while executing the main method")
+        raise CustomException(e,sys)
 
 if __name__ == "__main__":
     main()
