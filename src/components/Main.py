@@ -1,5 +1,6 @@
 import cv2
 import time
+import sys
 import numpy as np
 import Handtrackingmodule as htm
 import math
@@ -90,50 +91,100 @@ class VolumeControl:
         '''
             Function to handle the volume controls 
         '''
-        while True:
-            success, img = self.Cam_variables.cap.read()
-            img = self.Detector_variable.detector.findHands(img)
-            lmList = self.Detector_variable.detector.findPosition(img, draw=False)
-            if len(lmList) != 0:
-                
-                # Defining the variable for the landmarks through which we will be controlling the volume
-                x1, y1 = lmList[4][1], lmList[4][2]
-                x2, y2 = lmList[8][1], lmList[8][2]
-                cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        
-                # Drawing a line between the above variables
-                cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
-                cv2.circle(img, (x2, y2), 15, (255, 0, 255), cv2.FILLED)
-                cv2.line(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
-                cv2.circle(img, (cx, cy), 15, (255, 0, 255), cv2.FILLED)
+        try:
 
-                #Calulating the leghth of above created line 
-                length = math.hypot(x2 - x1, y2 - y1)
-        
-                self.Audio_variables.vol = np.interp(length, [50, 300], [self.Audio_variables.minVol, self.Audio_variables.maxVol])
-                self.Audio_variables.volBar = np.interp(length, [50, 300], [400, 150])
-                self.Audio_variables.volPer = np.interp(length, [50, 300], [0, 100])
-                self.Audio_variables.volume.SetMasterVolumeLevel(self.Audio_variables.vol, None)
+            while True:
+                logging.info("Reading the image")
+                success, img = self.Cam_variables.cap.read()
+                logging.info("Read image")
+
+                logging.info("Finding hands")
+                img = self.Detector_variable.detector.findHands(img)
+                logging.info("Found hands")
+
+                logging.info("Finding positions")
+                lmList = self.Detector_variable.detector.findPosition(img, draw=False)
+                logging.info("Found Positions")
+
+
+                if len(lmList) != 0:
+                    
+                    logging.info("DEfining the co ordinates of the thumb tip and index finger tip")
+                    # Defining the variable for the landmarks through which we will be controlling the volume
+                    x1, y1 = lmList[4][1], lmList[4][2]
+                    x2, y2 = lmList[8][1], lmList[8][2]
+
+                    logging.info("Calculating the center of above coordinats")
+                    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
             
+                    # Drawing a line between the above variables
+                    logging.info("Drawing line and circle around the above calulated points")
+                    cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
+                    cv2.circle(img, (x2, y2), 15, (255, 0, 255), cv2.FILLED)
+                    cv2.line(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
+                    cv2.circle(img, (cx, cy), 15, (255, 0, 255), cv2.FILLED)
+
+                    #Calulating the leghth of above created line 
+                    logging.info("Calculating the length between the two tips(thumb, index finger)")
+                    length = math.hypot(x2 - x1, y2 - y1)
+                    
+                    logging.info("Setting the range of the volume of the system")
+                    self.Audio_variables.vol = np.interp(
+                        length, 
+                        [50, 300], 
+                        [self.Audio_variables.minVol, self.Audio_variables.maxVol]
+                    )
+
+                    logging.info("Setting volBar configurations")
+                    self.Audio_variables.volBar = np.interp(length, [50, 300], [400, 150])
+
+                    logging.info("Setting volPer configurations")
+                    self.Audio_variables.volPer = np.interp(length, [50, 300], [0, 100])
+
+                    logging.info("Setting volume of the system")
+                    self.Audio_variables.volume.SetMasterVolumeLevel(self.Audio_variables.vol, None)
                 
-                if length < 50:
-                    cv2.circle(img, (cx, cy), 15, (0, 255, 0), cv2.FILLED)
-        
-            cv2.rectangle(img, (50, 150), (85, 400), (255, 0, 0), 3)
-            cv2.rectangle(img, (50, int(self.Audio_variables.volBar)), (85, 400), (255, 0, 0), cv2.FILLED)
-            cv2.putText(img, f'{int(self.Audio_variables.volPer)} %', (40, 450), cv2.FONT_HERSHEY_COMPLEX,1, (255, 0, 0), 3)
-        
-        
-            cTime = time.time()
-            fps = 1 / (cTime - self.Cam_variables.pTime)
-            pTime = cTime
-            cv2.putText(img, f'FPS: {int(fps)}', (40, 50), cv2.FONT_HERSHEY_COMPLEX,1, (255, 0, 0), 3)
-        
-            cv2.imshow("Img", img)
-            cv2.waitKey(1)
-        
-            if cv2.getWindowProperty("Img", cv2.WND_PROP_VISIBLE) <1:
-                break
+                    logging.info("Drawing circle on the center of the two co ordinates")
+                    if length < 50:
+                        cv2.circle(img, (cx, cy), 15, (0, 255, 0), cv2.FILLED)
+
+                logging.info("Drawing a rectangle for volume bar")
+                cv2.rectangle(img, (50, 150), (85, 400), (255, 0, 0), 3)
+
+                logging.info("Filling ther volume bar")
+                cv2.rectangle(img, (50, int(self.Audio_variables.volBar)), (85, 400), (255, 0, 0), cv2.FILLED)
+
+                logging.info("writing volume percentage on the volume bar")
+                cv2.putText(
+                    img, 
+                    f'{int(self.Audio_variables.volPer)} %', 
+                    (40, 450), 
+                    cv2.FONT_HERSHEY_COMPLEX,
+                    1, 
+                    (255, 0, 0), 
+                    3
+                    )
+            
+                logging.info("Defining cTime")
+                cTime = time.time()
+
+                logging.info("Calculating the time elapsed since last frame")
+                fps = 1 / (cTime - self.Cam_variables.pTime)
+                self.Cam_variables.pTime = cTime
+
+                logging.info("Writing fps on the frame")
+                cv2.putText(img, f'FPS: {int(fps)}', (40, 50), cv2.FONT_HERSHEY_COMPLEX,1, (255, 0, 0), 3)
+
+                logging.info("Displaying image")
+                cv2.imshow("Img", img)
+                cv2.waitKey(1)
+            
+                if cv2.getWindowProperty("Img", cv2.WND_PROP_VISIBLE) <1:
+                    break
+
+        except Exception as e:
+            logging.info("Error occured while setting the volume")
+            raise CustomException(e,sys)
 
         
 if __name__ == '__main__':
